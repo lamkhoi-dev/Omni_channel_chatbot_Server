@@ -1,0 +1,100 @@
+Chào bạn, tôi đã đọc và phân tích kỹ lưỡng tài liệu "XÂY DỰNG WEBSITE QUẢN LÝ KHÁCH HÀNG NỘI BỘ CHO NHÂN VIÊN KINH DOANH CHI NHÁNH BIC HÀ NỘI" mà bạn cung cấp.
+
+Đây là một tài liệu đặc tả yêu cầu phần mềm (SRS) rất chi tiết, bao gồm từ khâu khảo sát thực trạng, xác định yêu cầu chức năng/phi chức năng, cho đến thiết kế hệ thống (biểu đồ luồng dữ liệu) và thiết kế cơ sở dữ liệu.
+
+Để hỗ trợ bạn tốt nhất cho việc "code" (lập trình), tôi sẽ tóm tắt lại các phần cốt lõi một cách mạch lạc theo tư duy phát triển phần mềm dưới đây:
+
+Dành cho nhân viên:
+•	Quản lý khách hàng:
+o	Thêm mới khách hàng cá nhân hoặc doanh nghiệp.
+o	Xem danh sách khách hàng đang phụ trách.
+o	Cập nhật thông tin khách hàng.
+o	Tìm kiếm, lọc khách hàng theo nhiều tiêu chí.
+•	Quản lý cơ hội:
+o	Tạo mới cơ hội kinh doanh gắn với từng khách hàng.
+o	Cập nhật tiến độ, trạng thái xử lý cơ hội.
+o	Quản lý danh sách cơ hội theo từng giai đoạn bán hàng.
+•	Quản lý lịch hẹn
+o	Tạo lịch hẹn với khách hàng.
+o	Nhận thông báo nhắc lịch hẹn, nhắc hồ sơ gần đến hạn.
+o	Ghi lại kết quả nội dung sau buổi hẹn với khách hàng để xác định lại nhu cầu.
+o	Xem toàn bộ các lần chăm sóc trước đó theo từng khách hàng.
+•	Quản lý tài liệu:
+o	Tải lên các tệp hồ sơ của khách hàng chờ quản lý duyệt.
+o	Tạo, cập nhật, lưu trữ hợp đồng của khách hàng.
+•	Báo cáo cá nhân:
+o	Xem thống kê báo cáo KPI, doanh thu theo ngày, tháng năm,…
+o	Xem danh sách lịch hẹn hôm nay, công việc sắp đến hạn.
+- Dành cho quản lý:
+•	Theo dõi danh sách khách hàng của từng nhân viên:
+o	Xem tất cả khách hàng thuộc quyền quản lý.
+o	Xem chi tiết thông tin chăm sóc của từng nhân viên.
+•	Giám sát cơ hội kinh doanh:
+o	Xem toàn bộ cơ hội đang xử lý tại chi nhánh.
+o	Thống kê cơ hội theo trạng thái, kết quả xử lý, nhân viên phụ trách.
+•	Giám sát lịch hẹn – công việc:
+o	Xem lịch hẹn của từng nhân viên.
+o	Xem các công việc tồn đọng hoặc trễ hạn.
+o	Duyệt hồ sơ – hợp đồng
+o	Xem, kiểm tra và phê duyệt hợp đồng/hồ sơ khách hàng trước khi hoàn thiện.
+•	Báo cáo và KPI:
+o	Xem báo cáo doanh số toàn chi nhánh.
+o	Xem báo cáo hiệu suất theo từng nhân viên.
+o	Xuất dữ liệu báo cáo phục vụ công tác quản lý.
+•	Quản lý người dùng:
+o	Thêm mới tài khoản nhân viên.
+o	Phân quyền theo vai trò (nhân viên – quản lý – ban giám đốc).
+o	Khoá, kích hoạt, chỉnh sửa thông tin tài khoản
+- Dành cho ban giám đốc
+•	Báo cáo và KPI:
+o	Xem báo cáo doanh số toàn chi nhánh.
+o	Xem báo cáo hiệu suất theo từng nhân viên.
+o	Xuất dữ liệu báo cáo phục vụ công tác quản lý.
+
+
+b. Yêu cầu phi chức năng
+Dưới đây là những đặc tính bắt buộc hệ thống cần đáp ứng để đảm bảo hoạt động ổn định, an toàn và hiệu quả trong môi trường làm việc thực tế tại Chi nhánh BIC Hà Nội:
+•	Hiệu năng: Hệ thống phải đảm bảo tốc độ xử lý nhanh và ổn định khi có nhiều người dùng truy cập đồng thời. Thời gian phản hồi cho các thao tác cơ bản như tìm kiếm khách hàng, tải danh sách, cập nhật thông tin không vượt quá 3 giây, phục vụ đồng thời 30–50 người dùng mà không bị gián đoạn.
+•	Bảo mật: Do dữ liệu khách hàng và hồ sơ bảo hiểm mang tính nhạy cảm, hệ thống cần áp dụng cơ chế xác thực người dùng bằng tài khoản và mật khẩu. Phân quyền chi tiết theo vai trò (Role-based Access Control). Mã hóa mật khẩu và các dữ liệu quan trọng trước khi lưu trữ. Chỉ người được phân quyền mới có thể truy cập thông tin khách hàng hoặc cập nhật hồ sơ.
+•	Tính tương thích: Hoạt động tốt trên các môi trường phổ biến khi truy cập qua các trình duyệt như Chrome, Edge, Firefox. Giao diện tương thích với các kích thước màn hình laptop và máy tính văn phòng.
+•	Khả năng mở rộng: Hệ thống cần hỗ trợ mở rộng trong tương lai khi số lượng người dùng hoặc dữ liệu tăng lên. Ngoài ra, có thể bổ sung thêm các module như quản lý hoa hồng, quản lý đề xuất bồi thường,… Cấu trúc dữ liệu dễ nâng cấp mà không gây ảnh hưởng đến các chức năng hiện tại.
+•	Tính dễ sử dụng: Giao diện của hệ thống cần trực quan và thân thiện với người dùng với bố cục rõ ràng, dễ thao tác cho nhân viên kinh doanh. Hỗ trợ tiếng Việt và các thuật ngữ theo đúng nghiệp vụ bảo hiểm. Đồng nhất phong cách thiết kế trên toàn bộ các trang màn hình.
+
+3. Luồng nghiệp vụ chính (Logic Backend)Bạn cần chú ý kỹ các logic chuyển trạng thái (State Transition) sau để code backend cho đúng:Quy trình Thêm mới Khách hàng:Input thông tin $\rightarrow$ Lưu vào DB $\rightarrow$ Trạng thái mặc định: "Tiềm năng"17.Quy trình Cơ hội & Chốt hợp đồng (Quan trọng): 18Tạo cơ hội mới $\rightarrow$ Trạng thái cơ hội: "Mới" $\rightarrow$ Trạng thái KH đổi thành: "Đang chăm sóc".Tạo lịch hẹn $\rightarrow$ Cơ hội chuyển sang: "Chờ xử lý".Nếu lịch hẹn "Hủy" $\rightarrow$ Cơ hội: "Thất bại".Sau lịch hẹn, cập nhật kết quả:Nếu Thất bại $\rightarrow$ Quay lại kiểm tra/đóng cơ hội.Nếu Thành công $\rightarrow$ Yêu cầu Upload hồ sơ.Duyệt hồ sơ:Upload hồ sơ $\rightarrow$ Trạng thái: "Chờ duyệt".Quản lý duyệt $\rightarrow$ Trạng thái: "Duyệt" $\rightarrow$ Cho phép upload Hợp đồng.Quản lý từ chối $\rightarrow$ Trạng thái: "Bổ sung".Upload Hợp đồng $\rightarrow$ Cơ hội chuyển sang: "Thành công".Quy trình Tái tục: 19Cronjob chạy kiểm tra: Nếu NgayHetHan hợp đồng $\le$ 30 ngày so với hiện tại $\rightarrow$ Gửi thông báo cho nhân viên.
+
+4. Thiết kế Cơ sở dữ liệu (Database Schema)
+Dựa trên ERD và bảng dữ liệu , bạn sẽ cần tạo các bảng sau (tôi liệt kê các khóa chính/phụ quan trọng):
+
+Role: ID (PK), TenRole.
+
+NhanVien: ID (PK), ID_Role (FK), Username, MatKhau (cần mã hóa), TrangThaiNhanVien.
+
+KhachHang: ID (PK), TenKhachHang, TrangThaiKhachHang (Tiềm năng/Đang chăm sóc/...), LoaiKhachHang.
+
+CoHoi: ID (PK), ID_KhachHang (FK), ID_NhanVien (FK), TrangThaiCoHoi, GiaTri.
+
+LichHen: ID (PK), ID_CoHoi (FK), KetQuaSauCuocHen, TrangThaiLichHen.
+
+HoSo: ID (PK), ID_CoHoi (FK), FileHoSo (đường dẫn file), TrangThaiHoSo (Chờ duyệt/Đã duyệt...).
+
+HopDong: ID (PK), ID_HoSo (FK), NgayHieuLuc, NgayHetHan, GiaTri.
+
+Mối quan hệ chính:
+
+Một Nhân viên quản lý nhiều Cơ hội.
+
+Một Khách hàng có thể có nhiều Cơ hội.
+
+Một Cơ hội có nhiều Lịch hẹn nhưng chỉ dẫn đến 1 Hồ sơ (trong ngữ cảnh thành công).
+
+Một Hồ sơ (được duyệt) liên kết 1-1 với Hợp đồng.
+
+5. Yêu cầu Phi chức năng (Lưu ý kỹ thuật)
+
+Bảo mật: Phải mã hóa mật khẩu, phân quyền chặt chẽ (RBAC).
+
+
+Hiệu năng: Phản hồi < 3 giây, chịu tải 30-50 người dùng đồng thời.
+
+
+Giao diện: Web responsive, hoạt động tốt trên Chrome/Edge.
