@@ -1,0 +1,51 @@
+1. Tổng quan Dự án
+•	Tên ứng dụng: ChatDesk.
+•	Mục tiêu: Xây dựng nền tảng quản lý tin nhắn tập trung (Omni-channel) giúp doanh nghiệp vừa và nhỏ quản lý tương tác khách hàng từ nhiều nguồn (Facebook, Instagram) trên một giao diện duy nhất.
+________________________________________
+2. Các tác nhân trong hệ thống (Actors)
+Hệ thống bao gồm 3 nhóm đối tượng chính:
+1.	Doanh nghiệp (Business/SME):
+o	Là người dùng chính của hệ thống.
+o	Nhu cầu: Tích hợp các kênh bán hàng (Facebook, Instagram), quản lý tin nhắn, chốt đơn và cấu hình AI.
+2.	Contact (Khách hàng cuối):
+o	Là khách hàng của Doanh nghiệp.
+o	Họ nhắn tin qua các nền tảng mạng xã hội và không trực tiếp đăng nhập vào ChatDesk, nhưng dữ liệu của họ sẽ hiển thị trên ChatDesk.
+3.	Admin (Quản trị viên hệ thống):
+o	Là nhân viên của đơn vị cung cấp dịch vụ ChatDesk (trong tài liệu ghi là ViaConnect).
+o	Vai trò: Hỗ trợ, tư vấn gói dịch vụ cho Doanh nghiệp.
+________________________________________
+3. Yêu cầu Chức năng (Functional Requirements)
+Tôi chia các chức năng theo từng phân hệ để dễ quản lý:
+A. Phân hệ Xác thực & Tài khoản (Authentication)
+•	Đăng ký:
+o	Chỉ cho phép Doanh nghiệp đăng ký tài khoản mới.
+•	Đăng nhập:
+o	Cho phép Doanh nghiệp và Admin đăng nhập vào hệ thống.
+B. Phân hệ Tích hợp đa kênh (Integration)
+•	Kết nối tài khoản: Doanh nghiệp có thể kết nối tài khoản Facebook Page và Instagram vào hệ thống ChatDesk.
+•	Đồng bộ tin nhắn: Hệ thống tự động kéo tin nhắn từ Facebook/Instagram về giao diện ChatDesk để doanh nghiệp xem và quản lý tập trung.
+C. Phân hệ Giao tiếp & Tương tác (Communication)
+•	Chat: Doanh nghiệp có thể xem và (ngầm hiểu) trả lời tin nhắn của Contact từ giao diện trung tâm.
+D. Phân hệ Chatbot AI (LLM Core)
+Đây là tính năng lõi tạo nên sự khác biệt của sản phẩm:
+•	Tự động trả lời: Chatbot sử dụng mô hình ngôn ngữ lớn (LLM) để tự động phản hồi tin nhắn của Contact.
+•	Hiểu biết sản phẩm (Product Knowledge):
+o	AI có khả năng truy xuất dữ liệu sản phẩm riêng của từng doanh nghiệp.
+o	Tự động trả lời các câu hỏi liên quan đến mặt hàng cụ thể của doanh nghiệp đó (giá, công dụng, tình trạng hàng...).
+E. Phân hệ Quản lý thông tin (Management)
+•	Quản lý thông tin Doanh nghiệp:
+o	Lưu trữ và chỉnh sửa các thông tin cơ bản cần thiết để phục vụ đoạn chat và ngữ cảnh cho AI.
+•	Quản lý thông tin Contact:
+o	Lưu trữ thông tin cơ bản của khách hàng (Tên, nguồn đến từ đâu...) để phục vụ hiển thị trong đoạn chat.
+•	Quản lý thông tin Admin:
+o	Không yêu cầu chức năng quản lý, chỉnh sửa thông tin cho tài khoản Admin.
+________________________________________
+4. Yêu cầu Phi chức năng (Non-Functional Requirements)
+Để đảm bảo tiến độ và mục đích demo, các yêu cầu kỹ thuật được nới lỏng:
+•	Giao diện (UI/UX): Không yêu cầu thiết kế đẹp mắt, chỉ cần đầy đủ chức năng để phục vụ mục đích demo (Proof of Concept).
+•	Hiệu năng (Performance): Không cần tối ưu hóa tốc độ hay khả năng chịu tải cao ở giai đoạn này.
+________________________________________
+5. Đề xuất quy trình xử lý (Logic Flow)
+Dựa trên yêu cầu, luồng hoạt động chính sẽ như sau:
+1.	Setup: Doanh nghiệp đăng ký -> Đăng nhập -> Kết nối Page/Instagram -> Nhập thông tin sản phẩm (để AI học).
+2.	Runtime: Contact nhắn tin vào Fanpage -> Hệ thống ChatDesk nhận tin -> AI phân tích câu hỏi & tra cứu dữ liệu sản phẩm -> AI tự động trả lời (hoặc Doanh nghiệp chat tay/gọi điện).

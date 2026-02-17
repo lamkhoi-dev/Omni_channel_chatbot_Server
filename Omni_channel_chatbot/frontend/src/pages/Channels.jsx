@@ -1,0 +1,209 @@
+import { useEffect, useState } from 'react'
+import {
+  Card,
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Typography,
+  Tag,
+  message,
+  Popconfirm,
+  Space,
+  Alert,
+} from 'antd'
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  FacebookOutlined,
+  InstagramOutlined,
+  LinkOutlined,
+} from '@ant-design/icons'
+import { useChannelStore } from '../store/channelStore'
+import { useAuthStore } from '../store/authStore'
+import dayjs from 'dayjs'
+
+export default function Channels() {
+  const { channels, loading, fetchChannels, connectFacebook, connectInstagram, disconnectChannel } =
+    useChannelStore()
+  const token = useAuthStore((s) => s.token)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [platform, setPlatform] = useState('facebook')
+  const [form] = Form.useForm()
+
+  useEffect(() => {
+    fetchChannels()
+    
+    // Check for OAuth callback success/error
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('success')) {
+      message.success('Kết nối Facebook thành công!')
+      fetchChannels()
+      window.history.replaceState({}, '', '/channels')
+    } else if (params.get('error')) {
+      const error = params.get('error')
+      if (error === 'no_pages') {
+        message.error('Không tìm thấy Facebook Page nào. Vui lòng tạo Page trước.')
+      } else {
+        message.error(`Lỗi: ${error}`)
+      }
+      window.history.replaceState({}, '', '/channels')
+    }
+  }, [])
+
+  const handleConnectOAuth = () => {
+    // Redirect to OAuth flow
+    window.location.href = `/api/channels/facebook/oauth`
+  }
+
+  const handleConnect = async () => {
+    try {
+      const values = await form.validateFields()
+      if (platform === 'facebook') {
+        await connectFacebook(values)
+      } else {
+        await connectInstagram(values)
+      }
+      message.success(`Kết nối ${platform} thành công!`)
+      setModalOpen(false)
+      form.resetFields()
+    } catch (err) {
+      message.error(err.response?.data?.detail || 'Kết nối thất bại')
+    }
+  }
+
+  const handleDisconnect = async (channelId) => {
+    try {
+      await disconnectChannel(channelId)
+      message.success('Đã ngắt kết nối')
+    } catch {
+      message.error('Ngắt kết nối thất bại')
+    }
+  }
+
+  const columns = [
+    {
+      title: 'Nền tảng',
+      dataIndex: 'platform',
+      render: (p) =>
+        p === 'facebook' ? (
+          <Tag icon={<FacebookOutlined />} color="blue">
+            Facebook
+          </Tag>
+        ) : (
+          <Tag icon={<InstagramOutlined />} color="magenta">
+            Instagram
+          </Tag>
+        ),
+    },
+    { title: 'Tên Page', dataIndex: 'page_name', render: (v) => v || '-' },
+    { title: 'Page ID', dataIndex: 'platform_page_id' },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'is_active',
+      render: (v) => (v ? <Tag color="green">Hoạt động</Tag> : <Tag color="red">Tắt</Tag>),
+    },
+    {
+      title: 'Ngày kết nối',
+      dataIndex: 'created_at',
+      render: (v) => dayjs(v).format('DD/MM/YYYY HH:mm'),
+    },
+    {
+      title: '',
+      render: (_, record) => (
+        <Popconfirm title="Ngắt kết nối kênh này?" onConfirm={() => handleDisconnect(record.id)}>
+          <Button danger icon={<DeleteOutlined />} size="small">
+            Ngắt
+          </Button>
+        </Popconfirm>
+      ),
+    },
+  ]
+
+  return (
+    <div style={{ padding: 24 }}>
+      <Card
+        title="Kênh kết nối"
+        extra={
+          <Space>
+            <Button type="primary" icon={<LinkOutlined />} onClick={handleConnectOAuth}>
+              Kết nối Facebook (OAuth)
+            </Button>
+            <Button icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Nhập token thủ công
+            </Button>
+          </Space>
+        }
+      >
+        <Alert
+          message="Khuyến nghị: Dùng nút 'Kết nối Facebook (OAuth)' để tự động lấy token"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Table
+          dataSource={channels}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={false}
+          locale={{ emptyText: 'Chưa kết nối kênh nào' }}
+        />
+      </Card>
+
+      <Modal
+        title="Kết nối kênh thủ công"
+        open={modalOpen}
+        onOk={handleConnect}
+        onCancel={() => {
+          setModalOpen(false)
+          form.resetFields()
+        }}
+        okText="Kết nối"
+        cancelText="Hủy"
+      >
+        <Alert
+          message="Chỉ dùng cách này nếu bạn đã có Page Access Token"
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <div>
+            <Typography.Text>Chọn nền tảng:</Typography.Text>
+            <Select
+              value={platform}
+              onChange={setPlatform}
+              style={{ width: '100%', marginTop: 8 }}
+              options={[
+                { label: 'Facebook Page', value: 'facebook' },
+                { label: 'Instagram', value: 'instagram' },
+              ]}
+            />
+          </div>
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="platform_page_id"
+              label="Page ID"
+              rules={[{ required: true, message: 'Nhập Page ID' }]}
+            >
+              <Input placeholder="Nhập Facebook Page ID hoặc Instagram Account ID" />
+            </Form.Item>
+            <Form.Item name="page_name" label="Tên Page (tùy chọn)">
+              <Input placeholder="Nhập tên hiển thị" />
+            </Form.Item>
+            <Form.Item
+              name="access_token"
+              label="Access Token"
+              rules={[{ required: true, message: 'Nhập Access Token' }]}
+            >
+              <Input.TextArea placeholder="Dán Page Access Token vào đây" rows={3} />
+            </Form.Item>
+          </Form>
+        </Space>
+      </Modal>
+    </div>
+  )
+}
