@@ -99,7 +99,11 @@ Nhiệm vụ:
 - Trả lời ngắn gọn, tự nhiên, bằng tiếng Việt.
 - KHÔNG bịa thông tin sản phẩm mà không có trong dữ liệu.
 
-{f"=== THÔNG TIN SẢN PHẨM LIÊN QUAN ===\n{product_context}" if product_context else "Hiện không có sản phẩm nào trong hệ thống."}"""
+"""
+        if product_context:
+            system_prompt += f"=== THÔNG TIN SẢN PHẨM LIÊN QUAN ===\n{product_context}"
+        else:
+            system_prompt += "Hiện không có sản phẩm nào trong hệ thống."
 
         messages = [{"role": "system", "content": system_prompt}]
 
