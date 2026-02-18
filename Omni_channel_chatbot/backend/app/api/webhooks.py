@@ -26,7 +26,11 @@ async def facebook_verify(
 ):
     """Facebook webhook verification (GET)."""
     if hub_mode == "subscribe" and hub_verify_token == settings.FB_VERIFY_TOKEN:
-        return int(hub_challenge)
+        # Return challenge as-is (Facebook sends a number, but test may send string)
+        try:
+            return int(hub_challenge)
+        except (ValueError, TypeError):
+            return hub_challenge
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
