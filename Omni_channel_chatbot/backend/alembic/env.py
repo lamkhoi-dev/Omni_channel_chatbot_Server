@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -7,6 +8,16 @@ from alembic import context
 
 # this is the Alembic Config object
 config = context.config
+
+# Override sqlalchemy.url from DATABASE_URL env var (for Railway deployment)
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    # Railway provides postgresql:// but asyncpg needs postgresql+asyncpg://
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -6,6 +6,16 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/chatdesk"
 
+    @property
+    def db_url(self) -> str:
+        """Ensure DATABASE_URL uses asyncpg driver (Railway provides postgresql://)"""
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        return url
+
     # JWT
     SECRET_KEY: str = "chatdesk-super-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
