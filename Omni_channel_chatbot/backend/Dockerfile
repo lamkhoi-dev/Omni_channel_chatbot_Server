@@ -25,10 +25,11 @@ COPY . .
 
 # Make sure scripts are executable
 ENV PATH=/root/.local/bin:$PATH
+RUN chmod +x start.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:${PORT:-8000}/docs', timeout=5)"
 
-# Start command
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start command - run migrations then start server
+CMD ["./start.sh"]

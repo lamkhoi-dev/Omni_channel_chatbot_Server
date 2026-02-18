@@ -1,2 +1,2 @@
-# Railway deployment
-web: uvicorn main:app --host 0.0.0.0 --port $PORT
+# Railway deployment - auto-run migrations before starting server
+web: sh start.sh
