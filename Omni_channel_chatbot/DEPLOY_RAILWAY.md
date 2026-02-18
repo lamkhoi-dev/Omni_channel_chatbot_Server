@@ -27,7 +27,7 @@ git push
 3. Click **"New Project"** → **"Deploy from GitHub repo"**
 4. Authorize Railway access vào GitHub
 5. Chọn repository: `Omni_channel_chatbot`
-6. Railway sẽ tự detect Python project
+6. Railway sẽ tự detect Python project`
 
 ### 2.2. Cấu hình Root Directory
 
