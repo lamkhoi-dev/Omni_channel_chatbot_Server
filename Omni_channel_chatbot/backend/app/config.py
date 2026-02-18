@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     FB_VERIFY_TOKEN: str = "chatdesk_verify_token"
     FB_OAUTH_REDIRECT_URI: str = "http://localhost:8000/api/channels/facebook/callback"
 
+    # Frontend URL (for OAuth redirect, privacy page, etc.)
+    FRONTEND_URL: str = "http://localhost:5173"
+
     # CORS (comma-separated origins)
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 

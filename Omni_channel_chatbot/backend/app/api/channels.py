@@ -63,7 +63,9 @@ async def facebook_oauth_callback(
         pages = await get_user_pages(user_access_token)
         
         if not pages:
-            return RedirectResponse("http://localhost:5173/channels?error=no_pages")
+            from app.config import get_settings
+            frontend_url = get_settings().FRONTEND_URL
+            return RedirectResponse(f"{frontend_url}/channels?error=no_pages")
         
         # Save all pages
         for page in pages:
@@ -112,11 +114,15 @@ async def facebook_oauth_callback(
                         db.add(ig_channel)
         
         await db.commit()
-        return RedirectResponse("http://localhost:5173/channels?success=true")
+        from app.config import get_settings
+        frontend_url = get_settings().FRONTEND_URL
+        return RedirectResponse(f"{frontend_url}/channels?success=true")
         
     except Exception as e:
         await db.rollback()
-        return RedirectResponse(f"http://localhost:5173/channels?error={str(e)}")
+        from app.config import get_settings
+        frontend_url = get_settings().FRONTEND_URL
+        return RedirectResponse(f"{frontend_url}/channels?error={str(e)}")
 
 
 @router.post("/facebook", response_model=ChannelOut)

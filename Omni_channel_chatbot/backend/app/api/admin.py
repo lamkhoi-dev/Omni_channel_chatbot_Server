@@ -17,7 +17,7 @@ from datetime import datetime
 import uuid
 
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 # ============= Schemas =============
