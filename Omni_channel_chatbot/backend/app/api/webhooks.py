@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from app.config import get_settings
 from app.database import async_session
@@ -26,11 +27,8 @@ async def facebook_verify(
 ):
     """Facebook webhook verification (GET)."""
     if hub_mode == "subscribe" and hub_verify_token == settings.FB_VERIFY_TOKEN:
-        # Return challenge as-is (Facebook sends a number, but test may send string)
-        try:
-            return int(hub_challenge)
-        except (ValueError, TypeError):
-            return hub_challenge
+        # Facebook expects plain text response, NOT JSON
+        return PlainTextResponse(content=hub_challenge)
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
@@ -74,7 +72,7 @@ async def instagram_verify(
 ):
     """Instagram webhook verification (GET)."""
     if hub_mode == "subscribe" and hub_verify_token == settings.FB_VERIFY_TOKEN:
-        return int(hub_challenge)
+        return PlainTextResponse(content=hub_challenge)
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
