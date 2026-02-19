@@ -1,4 +1,5 @@
 import uuid
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from app.api.deps import get_current_business
 from app.services.embedding_service import get_embedding
 from app.services.milvus_service import upsert_embedding, delete_embedding
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/products", tags=["products"])
 
 
@@ -114,3 +116,40 @@ async def delete_product(
 
     await db.delete(product)
     return {"detail": "Product deleted"}
+
+
+@router.post("/import", response_model=list[ProductOut])
+async def import_products(
+    products: list[ProductCreate],
+    current_user: User = Depends(get_current_business),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bulk import products (max 50 at a time)."""
+    if len(products) > 50:
+        raise HTTPException(status_code=400, detail="Maximum 50 products per import")
+
+    created = []
+    for data in products:
+        product = Product(
+            business_id=current_user.id,
+            name=data.name,
+            description=data.description,
+            price=data.price,
+            status=data.status,
+            extra_info=data.extra_info,
+        )
+        db.add(product)
+        await db.flush()
+        await db.refresh(product)
+
+        # Store embedding in Milvus
+        try:
+            text = _build_product_text(data.name, data.description, data.price, data.status)
+            embedding = await get_embedding(text)
+            upsert_embedding(str(product.id), str(current_user.id), embedding)
+        except Exception as e:
+            logger.warning(f"Embedding failed for product {product.name}: {e}")
+
+        created.append(product)
+
+    return created

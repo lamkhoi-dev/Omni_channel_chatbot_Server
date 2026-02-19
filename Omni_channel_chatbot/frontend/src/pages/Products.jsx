@@ -13,7 +13,7 @@ import {
   message,
   Popconfirm,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons'
 import client from '../api/client'
 import dayjs from 'dayjs'
 
@@ -22,6 +22,7 @@ export default function Products() {
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [importing, setImporting] = useState(false)
   const [form] = Form.useForm()
 
   const fetchProducts = async () => {
@@ -73,6 +74,34 @@ export default function Products() {
     } catch {
       message.error('Xóa thất bại')
     }
+  }
+
+  const handleImportJSON = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      setImporting(true)
+      try {
+        const text = await file.text()
+        const data = JSON.parse(text)
+        const products = Array.isArray(data) ? data : data.products || []
+        if (products.length === 0) {
+          message.warning('File JSON không có sản phẩm')
+          return
+        }
+        await client.post('/api/products/import', products)
+        message.success(`Import thành công ${products.length} sản phẩm`)
+        fetchProducts()
+      } catch (err) {
+        message.error(err.response?.data?.detail || 'Import thất bại, kiểm tra lại file JSON')
+      } finally {
+        setImporting(false)
+      }
+    }
+    input.click()
   }
 
   const columns = [
@@ -130,17 +159,26 @@ export default function Products() {
       <Card
         title={`Sản phẩm (${products.length})`}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingProduct(null)
-              form.resetFields()
-              setModalOpen(true)
-            }}
-          >
-            Thêm sản phẩm
-          </Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              icon={<UploadOutlined />}
+              onClick={handleImportJSON}
+              loading={importing}
+            >
+              Import JSON
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingProduct(null)
+                form.resetFields()
+                setModalOpen(true)
+              }}
+            >
+              Thêm sản phẩm
+            </Button>
+          </div>
         }
       >
         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>

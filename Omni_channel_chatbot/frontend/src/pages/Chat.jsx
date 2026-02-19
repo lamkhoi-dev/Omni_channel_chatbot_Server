@@ -10,7 +10,6 @@ import {
 } from '@ant-design/icons'
 import { useChatStore } from '../store/chatStore'
 import { useAuthStore } from '../store/authStore'
-import { connectWebSocket, disconnectWebSocket } from '../utils/websocket'
 import dayjs from 'dayjs'
 
 export default function Chat() {
@@ -31,23 +30,10 @@ export default function Chat() {
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef(null)
 
-  // Fetch conversations + connect WebSocket
+  // Fetch conversations on mount (WebSocket is managed by Layout.jsx)
   useEffect(() => {
     fetchConversations()
-
-    if (user?.id) {
-      connectWebSocket(user.id, (data) => {
-        // Add incoming message in real-time
-        addMessage(data)
-        // Refresh conversation list to update last_message_at
-        fetchConversations()
-      })
-    }
-
-    return () => {
-      disconnectWebSocket()
-    }
-  }, [user?.id])
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
