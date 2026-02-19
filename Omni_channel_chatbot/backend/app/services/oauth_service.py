@@ -16,7 +16,7 @@ def get_facebook_oauth_url(state: str) -> str:
         "client_id": settings.FB_APP_ID,
         "redirect_uri": settings.FB_OAUTH_REDIRECT_URI,
         "state": state,
-        "scope": "pages_messaging,pages_read_engagement,pages_manage_metadata,instagram_basic,instagram_manage_messages",
+        "scope": "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata,instagram_basic,instagram_manage_messages",
     }
     return f"{FB_OAUTH_URL}?{urlencode(params)}"
 
@@ -48,9 +48,13 @@ async def get_user_pages(user_access_token: str) -> list[dict]:
     
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.get(url, params=params)
+        logger.info(f"GET /me/accounts status={response.status_code}")
+        logger.info(f"GET /me/accounts body={response.text[:500]}")
         response.raise_for_status()
         data = response.json()
-        return data.get("data", [])
+        pages = data.get("data", [])
+        logger.info(f"Found {len(pages)} page(s)")
+        return pages
 
 
 async def subscribe_page_webhook(page_id: str, page_access_token: str) -> bool:
