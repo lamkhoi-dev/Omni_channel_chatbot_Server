@@ -23,6 +23,7 @@ import {
 } from '@ant-design/icons'
 import { useChannelStore } from '../store/channelStore'
 import { useAuthStore } from '../store/authStore'
+import client from '../api/client'
 import dayjs from 'dayjs'
 
 export default function Channels() {
@@ -53,9 +54,13 @@ export default function Channels() {
     }
   }, [])
 
-  const handleConnectOAuth = () => {
-    // Redirect to OAuth flow
-    window.location.href = `/api/channels/facebook/oauth`
+  const handleConnectOAuth = async () => {
+    try {
+      const res = await client.get('/api/channels/facebook/oauth')
+      window.location.href = res.data.url
+    } catch (err) {
+      message.error('Lỗi khởi tạo OAuth: ' + (err.response?.data?.detail || err.message))
+    }
   }
 
   const handleConnect = async () => {

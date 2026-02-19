@@ -36,11 +36,11 @@ async def list_channels(
 
 @router.get("/facebook/oauth")
 async def facebook_oauth_start(current_user: User = Depends(get_current_business)):
-    """Start Facebook OAuth flow."""
+    """Start Facebook OAuth flow. Returns the OAuth URL as JSON."""
     state = secrets.token_urlsafe(32)
     _oauth_states[state] = str(current_user.id)
     oauth_url = get_facebook_oauth_url(state)
-    return RedirectResponse(oauth_url)
+    return {"url": oauth_url}
 
 
 @router.get("/facebook/callback")
