@@ -1,9 +1,11 @@
 import uuid
-import secrets
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from jose import jwt, JWTError
+from app.config import get_settings
 from app.database import get_db
 from app.models.user import User
 from app.models.channel import Channel
@@ -17,10 +19,24 @@ from app.services.oauth_service import (
     get_instagram_accounts,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/channels", tags=["channels"])
 
-# Store state temporarily (in production, use Redis or DB)
-_oauth_states = {}
+settings = get_settings()
+
+
+def _encode_oauth_state(business_id: str) -> str:
+    """Encode business_id into a signed JWT token used as OAuth state."""
+    return jwt.encode({"bid": business_id}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def _decode_oauth_state(state: str) -> str | None:
+    """Decode business_id from OAuth state token. Returns None if invalid."""
+    try:
+        payload = jwt.decode(state, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload.get("bid")
+    except JWTError:
+        return None
 
 
 @router.get("", response_model=list[ChannelOut])
@@ -37,8 +53,7 @@ async def list_channels(
 @router.get("/facebook/oauth")
 async def facebook_oauth_start(current_user: User = Depends(get_current_business)):
     """Start Facebook OAuth flow. Returns the OAuth URL as JSON."""
-    state = secrets.token_urlsafe(32)
-    _oauth_states[state] = str(current_user.id)
+    state = _encode_oauth_state(str(current_user.id))
     oauth_url = get_facebook_oauth_url(state)
     return {"url": oauth_url}
 
@@ -50,10 +65,11 @@ async def facebook_oauth_callback(
     db: AsyncSession = Depends(get_db),
 ):
     """Handle Facebook OAuth callback."""
-    # Verify state
-    business_id = _oauth_states.pop(state, None)
+    # Decode business_id from signed state token
+    business_id = _decode_oauth_state(state)
     if not business_id:
-        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+        logger.error("Invalid OAuth state token")
+        return RedirectResponse(f"{settings.FRONTEND_URL}/channels?error=invalid_state")
 
     try:
         # Exchange code for token
@@ -63,9 +79,8 @@ async def facebook_oauth_callback(
         pages = await get_user_pages(user_access_token)
         
         if not pages:
-            from app.config import get_settings
-            frontend_url = get_settings().FRONTEND_URL
-            return RedirectResponse(f"{frontend_url}/channels?error=no_pages")
+            logger.warning(f"No pages found for business {business_id}")
+            return RedirectResponse(f"{settings.FRONTEND_URL}/channels?error=no_pages")
         
         # Save all pages
         for page in pages:
@@ -114,15 +129,13 @@ async def facebook_oauth_callback(
                         db.add(ig_channel)
         
         await db.commit()
-        from app.config import get_settings
-        frontend_url = get_settings().FRONTEND_URL
-        return RedirectResponse(f"{frontend_url}/channels?success=true")
+        logger.info(f"Successfully connected {len(pages)} page(s) for business {business_id}")
+        return RedirectResponse(f"{settings.FRONTEND_URL}/channels?success=true")
         
     except Exception as e:
         await db.rollback()
-        from app.config import get_settings
-        frontend_url = get_settings().FRONTEND_URL
-        return RedirectResponse(f"{frontend_url}/channels?error={str(e)}")
+        logger.error(f"OAuth callback error for business {business_id}: {e}")
+        return RedirectResponse(f"{settings.FRONTEND_URL}/channels?error={str(e)}")
 
 
 @router.post("/facebook", response_model=ChannelOut)
