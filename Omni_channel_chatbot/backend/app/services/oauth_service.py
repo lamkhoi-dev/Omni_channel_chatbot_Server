@@ -6,8 +6,8 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-FB_GRAPH_API = "https://graph.facebook.com/v19.0"
-FB_OAUTH_URL = "https://www.facebook.com/v19.0/dialog/oauth"
+FB_GRAPH_API = "https://graph.facebook.com/v21.0"
+FB_OAUTH_URL = "https://www.facebook.com/v21.0/dialog/oauth"
 
 
 def get_facebook_oauth_url(state: str) -> str:
@@ -35,11 +35,43 @@ async def exchange_code_for_token(code: str) -> str:
         response = await client.get(url, params=params)
         response.raise_for_status()
         data = response.json()
+        logger.info(f"Token exchange success, token_type={data.get('token_type')}")
         return data["access_token"]
+
+
+async def _debug_token_info(access_token: str):
+    """Debug: log user info and granted permissions."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        # Check who the token belongs to
+        me_resp = await client.get(
+            f"{FB_GRAPH_API}/me",
+            params={"access_token": access_token, "fields": "id,name"}
+        )
+        logger.info(f"DEBUG /me => {me_resp.status_code}: {me_resp.text[:300]}")
+        
+        # Check granted permissions
+        perm_resp = await client.get(
+            f"{FB_GRAPH_API}/me/permissions",
+            params={"access_token": access_token}
+        )
+        logger.info(f"DEBUG /me/permissions => {perm_resp.status_code}: {perm_resp.text[:500]}")
+        
+        # Debug token info
+        debug_resp = await client.get(
+            f"{FB_GRAPH_API}/debug_token",
+            params={
+                "input_token": access_token,
+                "access_token": f"{settings.FB_APP_ID}|{settings.FB_APP_SECRET}",
+            }
+        )
+        logger.info(f"DEBUG /debug_token => {debug_resp.status_code}: {debug_resp.text[:500]}")
 
 
 async def get_user_pages(user_access_token: str) -> list[dict]:
     """Get list of pages that user manages."""
+    # Debug: log token info before querying pages
+    await _debug_token_info(user_access_token)
+    
     url = f"{FB_GRAPH_API}/me/accounts"
     params = {
         "access_token": user_access_token,

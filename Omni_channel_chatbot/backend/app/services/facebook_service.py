@@ -3,7 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-FB_GRAPH_API = "https://graph.facebook.com/v19.0"
+FB_GRAPH_API = "https://graph.facebook.com/v21.0"
 
 
 async def send_facebook_message(
