@@ -22,7 +22,7 @@ def get_facebook_oauth_url(state: str) -> str:
 
 
 async def exchange_code_for_token(code: str) -> str:
-    """Exchange authorization code for access token."""
+    """Exchange authorization code for a long-lived access token."""
     url = f"{FB_GRAPH_API}/oauth/access_token"
     params = {
         "client_id": settings.FB_APP_ID,
@@ -35,8 +35,28 @@ async def exchange_code_for_token(code: str) -> str:
         response = await client.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        logger.info(f"Token exchange success, token_type={data.get('token_type')}")
-        return data["access_token"]
+        short_token = data["access_token"]
+        expires_in = data.get("expires_in", "unknown")
+        logger.info(f"Code exchange success, token_type={data.get('token_type')}, expires_in={expires_in}")
+        
+        # Exchange for long-lived token (required for Facebook Login for Business)
+        ll_url = f"{FB_GRAPH_API}/oauth/access_token"
+        ll_params = {
+            "grant_type": "fb_exchange_token",
+            "client_id": settings.FB_APP_ID,
+            "client_secret": settings.FB_APP_SECRET,
+            "fb_exchange_token": short_token,
+        }
+        ll_response = await client.get(ll_url, params=ll_params)
+        if ll_response.status_code == 200:
+            ll_data = ll_response.json()
+            long_token = ll_data["access_token"]
+            ll_expires = ll_data.get("expires_in", "unknown")
+            logger.info(f"Long-lived token obtained, expires_in={ll_expires}")
+            return long_token
+        else:
+            logger.warning(f"Long-lived token exchange failed ({ll_response.status_code}), using short-lived token")
+            return short_token
 
 
 async def _debug_token_info(access_token: str):
@@ -55,38 +75,63 @@ async def _debug_token_info(access_token: str):
             params={"access_token": access_token}
         )
         logger.info(f"DEBUG /me/permissions => {perm_resp.status_code}: {perm_resp.text[:500]}")
-        
-        # Debug token info
-        debug_resp = await client.get(
-            f"{FB_GRAPH_API}/debug_token",
-            params={
-                "input_token": access_token,
-                "access_token": f"{settings.FB_APP_ID}|{settings.FB_APP_SECRET}",
-            }
-        )
-        logger.info(f"DEBUG /debug_token => {debug_resp.status_code}: {debug_resp.text[:500]}")
 
 
 async def get_user_pages(user_access_token: str) -> list[dict]:
-    """Get list of pages that user manages."""
+    """Get list of pages that user manages. Tries multiple approaches."""
     # Debug: log token info before querying pages
     await _debug_token_info(user_access_token)
     
-    url = f"{FB_GRAPH_API}/me/accounts"
-    params = {
-        "access_token": user_access_token,
-        "fields": "id,name,access_token",
-    }
-    
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.get(url, params=params)
-        logger.info(f"GET /me/accounts status={response.status_code}")
-        logger.info(f"GET /me/accounts body={response.text[:500]}")
-        response.raise_for_status()
-        data = response.json()
-        pages = data.get("data", [])
-        logger.info(f"Found {len(pages)} page(s)")
-        return pages
+        # ---- Approach 1: Standard /me/accounts ----
+        response = await client.get(
+            f"{FB_GRAPH_API}/me/accounts",
+            params={"access_token": user_access_token, "fields": "id,name,access_token"},
+        )
+        logger.info(f"[Approach 1] GET /me/accounts => {response.status_code}: {response.text[:500]}")
+        if response.status_code == 200:
+            pages = response.json().get("data", [])
+            if pages:
+                logger.info(f"[Approach 1] Found {len(pages)} page(s)")
+                return pages
+        
+        # ---- Approach 2: Field expansion on /me ----
+        response2 = await client.get(
+            f"{FB_GRAPH_API}/me",
+            params={
+                "access_token": user_access_token,
+                "fields": "id,name,accounts{id,name,access_token}",
+            },
+        )
+        logger.info(f"[Approach 2] GET /me?fields=accounts => {response2.status_code}: {response2.text[:500]}")
+        if response2.status_code == 200:
+            data2 = response2.json()
+            accounts = data2.get("accounts", {}).get("data", [])
+            if accounts:
+                logger.info(f"[Approach 2] Found {len(accounts)} page(s)")
+                return accounts
+        
+        # ---- Approach 3: Get user ID first, then /{user_id}/accounts ----
+        me_resp = await client.get(
+            f"{FB_GRAPH_API}/me",
+            params={"access_token": user_access_token, "fields": "id"},
+        )
+        if me_resp.status_code == 200:
+            user_id = me_resp.json().get("id")
+            if user_id:
+                response3 = await client.get(
+                    f"{FB_GRAPH_API}/{user_id}/accounts",
+                    params={"access_token": user_access_token, "fields": "id,name,access_token"},
+                )
+                logger.info(f"[Approach 3] GET /{user_id}/accounts => {response3.status_code}: {response3.text[:500]}")
+                if response3.status_code == 200:
+                    pages3 = response3.json().get("data", [])
+                    if pages3:
+                        logger.info(f"[Approach 3] Found {len(pages3)} page(s)")
+                        return pages3
+        
+        logger.warning("All approaches returned 0 pages")
+        return []
 
 
 async def subscribe_page_webhook(page_id: str, page_access_token: str) -> bool:
