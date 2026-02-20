@@ -16,8 +16,19 @@ def get_facebook_oauth_url(state: str) -> str:
         "client_id": settings.FB_APP_ID,
         "redirect_uri": settings.FB_OAUTH_REDIRECT_URI,
         "state": state,
-        "scope": "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata,instagram_basic,instagram_manage_messages",
     }
+    
+    # Facebook Login for Business requires config_id instead of scope
+    if settings.FB_CONFIG_ID:
+        params["config_id"] = settings.FB_CONFIG_ID
+        params["response_type"] = "code"
+        params["override_default_response_type"] = "true"
+        logger.info(f"Using FLFB config_id: {settings.FB_CONFIG_ID}")
+    else:
+        # Fallback to classic scope-based login
+        params["scope"] = "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata,instagram_basic,instagram_manage_messages"
+        logger.info("Using classic scope-based OAuth (no config_id set)")
+    
     return f"{FB_OAUTH_URL}?{urlencode(params)}"
 
 
