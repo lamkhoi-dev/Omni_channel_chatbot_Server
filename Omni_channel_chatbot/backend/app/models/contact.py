@@ -11,7 +11,7 @@ class Contact(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     business_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    platform: Mapped[str] = mapped_column(SAEnum("facebook", "instagram", name="platform_type", create_type=False), nullable=False)
+    platform: Mapped[str] = mapped_column(SAEnum("facebook", "instagram", "telegram", name="platform_type", create_type=False), nullable=False)
     platform_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     profile_pic_url: Mapped[str | None] = mapped_column(Text, nullable=True)

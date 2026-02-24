@@ -106,6 +106,49 @@ async def instagram_webhook(request: Request):
     return {"status": "ok"}
 
 
+# ==================== Telegram Webhook ====================
+
+@router.post("/telegram/{bot_id}")
+async def telegram_webhook(bot_id: str, request: Request):
+    """Receive messages from Telegram Bot API.
+    
+    bot_id is the numeric part of the bot token (before the colon),
+    used to identify which channel this webhook belongs to.
+    """
+    body = await request.json()
+    logger.info(f"Telegram webhook received for bot {bot_id}: {body}")
+
+    message_data = body.get("message")
+    if not message_data:
+        return {"status": "ignored"}
+
+    # Only process text messages
+    text = message_data.get("text", "")
+    if not text or text.startswith("/start"):
+        return {"status": "ignored"}
+
+    chat = message_data.get("chat", {})
+    from_user = message_data.get("from", {})
+    chat_id = str(chat.get("id"))
+    sender_id = str(from_user.get("id"))
+
+    # Build display name from Telegram user info
+    first_name = from_user.get("first_name", "")
+    last_name = from_user.get("last_name", "")
+    sender_name = f"{first_name} {last_name}".strip() or from_user.get("username") or f"User {sender_id[-6:]}"
+
+    await _process_incoming_message(
+        platform="telegram",
+        page_id=bot_id,
+        sender_id=chat_id,  # Use chat_id as recipient for replies
+        message_text=text,
+        platform_message_id=str(message_data.get("message_id", "")),
+        sender_name=sender_name,
+    )
+
+    return {"status": "ok"}
+
+
 # ==================== Shared Logic ====================
 
 async def _process_incoming_message(
@@ -114,6 +157,7 @@ async def _process_incoming_message(
     sender_id: str,
     message_text: str,
     platform_message_id: str | None,
+    sender_name: str | None = None,
 ):
     """Process incoming message from FB or IG: save to DB, trigger AI, notify via WS."""
     async with async_session() as db:
@@ -145,7 +189,7 @@ async def _process_incoming_message(
                     business_id=channel.business_id,
                     platform=platform,
                     platform_user_id=sender_id,
-                    display_name=f"User {sender_id[-6:]}",
+                    display_name=sender_name or f"User {sender_id[-6:]}",
                 )
                 db.add(contact)
                 await db.flush()
@@ -215,6 +259,7 @@ async def _process_incoming_message(
                     # Send AI reply back via platform
                     from app.services.facebook_service import send_facebook_message
                     from app.services.instagram_service import send_instagram_message
+                    from app.services.telegram_service import send_telegram_message
 
                     ai_platform_msg_id = None
                     try:
@@ -228,6 +273,12 @@ async def _process_incoming_message(
                             ai_platform_msg_id = await send_instagram_message(
                                 page_access_token=channel.access_token,
                                 recipient_id=sender_id,
+                                message_text=ai_response_text,
+                            )
+                        elif platform == "telegram":
+                            ai_platform_msg_id = await send_telegram_message(
+                                bot_token=channel.access_token,
+                                chat_id=sender_id,
                                 message_text=ai_response_text,
                             )
                     except Exception as e:

@@ -20,6 +20,7 @@ import {
   FacebookOutlined,
   InstagramOutlined,
   LinkOutlined,
+  SendOutlined,
 } from '@ant-design/icons'
 import { useChannelStore } from '../store/channelStore'
 import { useAuthStore } from '../store/authStore'
@@ -27,10 +28,13 @@ import client from '../api/client'
 import dayjs from 'dayjs'
 
 export default function Channels() {
-  const { channels, loading, fetchChannels, connectFacebook, connectInstagram, disconnectChannel } =
+  const { channels, loading, fetchChannels, connectFacebook, connectInstagram, connectTelegram, disconnectChannel } =
     useChannelStore()
   const token = useAuthStore((s) => s.token)
   const [modalOpen, setModalOpen] = useState(false)
+  const [telegramModalOpen, setTelegramModalOpen] = useState(false)
+  const [telegramToken, setTelegramToken] = useState('')
+  const [telegramLoading, setTelegramLoading] = useState(false)
   const [platform, setPlatform] = useState('facebook')
   const [form] = Form.useForm()
 
@@ -60,6 +64,24 @@ export default function Channels() {
       window.location.href = res.data.url
     } catch (err) {
       message.error('Lỗi khởi tạo OAuth: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const handleConnectTelegram = async () => {
+    if (!telegramToken.trim()) {
+      message.error('Vui lòng nhập Bot Token')
+      return
+    }
+    setTelegramLoading(true)
+    try {
+      await connectTelegram(telegramToken.trim())
+      message.success('Kết nối Telegram Bot thành công!')
+      setTelegramModalOpen(false)
+      setTelegramToken('')
+    } catch (err) {
+      message.error(err.response?.data?.detail || 'Kết nối Telegram thất bại')
+    } finally {
+      setTelegramLoading(false)
     }
   }
 
@@ -97,10 +119,16 @@ export default function Channels() {
           <Tag icon={<FacebookOutlined />} color="blue">
             Facebook
           </Tag>
-        ) : (
+        ) : p === 'instagram' ? (
           <Tag icon={<InstagramOutlined />} color="magenta">
             Instagram
           </Tag>
+        ) : p === 'telegram' ? (
+          <Tag icon={<SendOutlined />} color="cyan">
+            Telegram
+          </Tag>
+        ) : (
+          <Tag>{p}</Tag>
         ),
     },
     { title: 'Tên Page', dataIndex: 'page_name', render: (v) => v || '-' },
@@ -135,6 +163,9 @@ export default function Channels() {
           <Space>
             <Button type="primary" icon={<LinkOutlined />} onClick={handleConnectOAuth}>
               Kết nối Facebook (OAuth)
+            </Button>
+            <Button icon={<SendOutlined />} onClick={() => setTelegramModalOpen(true)} style={{ borderColor: '#0088cc', color: '#0088cc' }}>
+              Kết nối Telegram
             </Button>
             <Button icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
               Nhập token thủ công
@@ -208,6 +239,40 @@ export default function Channels() {
             </Form.Item>
           </Form>
         </Space>
+      </Modal>
+
+      <Modal
+        title="Kết nối Telegram Bot"
+        open={telegramModalOpen}
+        onOk={handleConnectTelegram}
+        onCancel={() => {
+          setTelegramModalOpen(false)
+          setTelegramToken('')
+        }}
+        okText="Kết nối"
+        cancelText="Hủy"
+        confirmLoading={telegramLoading}
+      >
+        <Alert
+          message="Hướng dẫn lấy Bot Token"
+          description={
+            <ol style={{ paddingLeft: 20, margin: '8px 0 0' }}>
+              <li>Mở Telegram, tìm <b>@BotFather</b></li>
+              <li>Gửi <code>/newbot</code> và làm theo hướng dẫn</li>
+              <li>BotFather sẽ trả về một <b>Bot Token</b> (dạng: <code>123456:ABC-DEF...</code>)</li>
+              <li>Copy token đó và dán vào ô bên dưới</li>
+            </ol>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Input.TextArea
+          placeholder="Dán Bot Token vào đây (vd: 7123456789:AAF...)"
+          rows={2}
+          value={telegramToken}
+          onChange={(e) => setTelegramToken(e.target.value)}
+        />
       </Modal>
     </div>
   )

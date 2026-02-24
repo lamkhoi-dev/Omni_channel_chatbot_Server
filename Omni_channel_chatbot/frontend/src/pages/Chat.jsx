@@ -57,6 +57,8 @@ export default function Chat() {
   const getPlatformIcon = (platform) =>
     platform === 'facebook' ? (
       <FacebookOutlined style={{ color: '#1877F2' }} />
+    ) : platform === 'telegram' ? (
+      <SendOutlined style={{ color: '#0088cc' }} />
     ) : (
       <InstagramOutlined style={{ color: '#E4405F' }} />
     )

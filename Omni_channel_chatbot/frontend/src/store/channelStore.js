@@ -29,6 +29,15 @@ export const useChannelStore = create((set) => ({
     return res.data
   },
 
+  connectTelegram: async (botToken) => {
+    const res = await client.post('/api/channels/telegram/connect', {
+      access_token: botToken,
+      platform_page_id: 'auto',  // Will be set by backend
+    })
+    set((state) => ({ channels: [res.data, ...state.channels] }))
+    return res.data
+  },
+
   disconnectChannel: async (channelId) => {
     await client.delete(`/api/channels/${channelId}`)
     set((state) => ({

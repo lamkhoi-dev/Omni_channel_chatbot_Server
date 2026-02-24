@@ -11,6 +11,7 @@ from app.schemas.message import MessageCreate, MessageOut
 from app.api.deps import get_current_business
 from app.services.facebook_service import send_facebook_message
 from app.services.instagram_service import send_instagram_message
+from app.services.telegram_service import send_telegram_message
 
 router = APIRouter(prefix="/api/conversations", tags=["messages"])
 
@@ -79,6 +80,12 @@ async def send_message(
             platform_message_id = await send_instagram_message(
                 page_access_token=conversation.channel.access_token,
                 recipient_id=conversation.contact.platform_user_id,
+                message_text=data.content,
+            )
+        elif conversation.platform == "telegram":
+            platform_message_id = await send_telegram_message(
+                bot_token=conversation.channel.access_token,
+                chat_id=conversation.contact.platform_user_id,
                 message_text=data.content,
             )
     except Exception as e:

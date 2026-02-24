@@ -18,6 +18,11 @@ from app.services.oauth_service import (
     subscribe_page_webhook,
     get_instagram_accounts,
 )
+from app.services.telegram_service import (
+    get_telegram_bot_info,
+    set_telegram_webhook,
+    delete_telegram_webhook,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/channels", tags=["channels"])
@@ -212,5 +217,70 @@ async def disconnect_channel(
     if not channel:
         raise HTTPException(status_code=404, detail="Channel not found")
 
+    # Clean up Telegram webhook when disconnecting
+    if channel.platform == "telegram":
+        await delete_telegram_webhook(channel.access_token)
+
     await db.delete(channel)
     return {"detail": "Channel disconnected"}
+
+
+# ==================== Telegram ====================
+
+class TelegramConnect(ChannelCreate):
+    """Only bot_token is required for Telegram."""
+    pass
+
+
+@router.post("/telegram/connect", response_model=ChannelOut)
+async def connect_telegram(
+    data: TelegramConnect,
+    current_user: User = Depends(get_current_business),
+    db: AsyncSession = Depends(get_db),
+):
+    """Connect a Telegram Bot. Validates bot token & sets webhook."""
+    bot_token = data.access_token.strip()
+    
+    # Validate bot token by calling getMe
+    bot_info = await get_telegram_bot_info(bot_token)
+    if not bot_info:
+        raise HTTPException(status_code=400, detail="Bot token không hợp lệ. Kiểm tra lại token từ @BotFather.")
+    
+    bot_id = str(bot_info["id"])
+    bot_username = bot_info.get("username", "")
+    bot_name = bot_info.get("first_name", bot_username)
+    
+    # Check if already connected
+    result = await db.execute(
+        select(Channel).where(
+            Channel.business_id == current_user.id,
+            Channel.platform == "telegram",
+            Channel.platform_page_id == bot_id,
+        )
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Bot @{bot_username} đã được kết nối rồi.")
+    
+    # Set webhook URL
+    base_url = settings.FB_OAUTH_REDIRECT_URI.rsplit("/api/", 1)[0]  # Get base URL from existing config
+    webhook_url = f"{base_url}/api/webhooks/telegram/{bot_id}"
+    
+    success = await set_telegram_webhook(bot_token, webhook_url)
+    if not success:
+        raise HTTPException(status_code=500, detail="Không thể đăng ký webhook với Telegram. Thử lại sau.")
+    
+    # Save channel
+    channel = Channel(
+        business_id=current_user.id,
+        platform="telegram",
+        platform_page_id=bot_id,
+        page_name=f"@{bot_username}" if bot_username else bot_name,
+        access_token=bot_token,
+    )
+    db.add(channel)
+    await db.flush()
+    await db.refresh(channel)
+    
+    logger.info(f"Telegram bot @{bot_username} (ID: {bot_id}) connected for business {current_user.id}, webhook: {webhook_url}")
+    return channel
