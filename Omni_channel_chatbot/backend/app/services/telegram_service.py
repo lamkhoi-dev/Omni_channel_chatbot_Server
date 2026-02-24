@@ -16,16 +16,15 @@ async def send_telegram_message(
     payload = {
         "chat_id": chat_id,
         "text": message_text,
-        "parse_mode": "HTML",
     }
 
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(url, json=payload)
-        response.raise_for_status()
         data = response.json()
+        logger.info(f"Telegram sendMessage response: ok={data.get('ok')}, chat_id={chat_id}")
         if data.get("ok"):
             return str(data["result"]["message_id"])
-        logger.warning(f"Telegram send failed: {data}")
+        logger.error(f"Telegram send failed: {data}")
         return None
 
 

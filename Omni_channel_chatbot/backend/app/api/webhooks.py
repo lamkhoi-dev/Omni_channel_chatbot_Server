@@ -249,11 +249,13 @@ async def _process_incoming_message(
 
             # 6. If AI enabled, generate and send AI response
             if conversation.is_ai_enabled:
+                logger.info(f"Generating AI response for {platform} conversation {conversation.id}")
                 ai_response_text = await generate_ai_response(
                     db=db,
                     conversation=conversation,
                     user_message=message_text,
                 )
+                logger.info(f"AI response: {ai_response_text[:100] if ai_response_text else 'None'}")
 
                 if ai_response_text:
                     # Send AI reply back via platform
